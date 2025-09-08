@@ -376,7 +376,7 @@ export async function getLockData(): Promise<LockSummary> {
                 const metadataDecoded = accountParser.parseAccount(metadataAccount.data[0])
                 if (metadataDecoded && metadataDecoded.name === 'VestingEscrowMetadata') {
                   name = metadataDecoded.data.name || "Unknown Lock"
-                  console.log(`  Lock name: "${name}"`)
+                  //console.log(`  Lock name: "${name}"`)
                 }
               } catch (e) {
                 console.warn(`Could not decode metadata for ${lockAccount.pubkey}`)
@@ -399,8 +399,8 @@ export async function getLockData(): Promise<LockSummary> {
               category = 'staking'
             }
 
-            console.log(`  Category: ${category}`)
-            console.log(`  ✅ ADDING to summary: currentLocked=${currentLocked.toLocaleString()}`)
+            //console.log(`  Category: ${category}`)
+            //console.log(`  ✅ ADDING to summary: currentLocked=${currentLocked.toLocaleString()}`)
 
             if (totalLocked > 0) {
               lockAccounts.push({
@@ -437,12 +437,12 @@ export async function getLockData(): Promise<LockSummary> {
       accounts: lockAccounts
     }
     
-    console.log(`\n=== LOCK SUMMARY (SolanaFM) ===`)
-    console.log(`Parsed ${lockAccounts.length} lock accounts`)
-    console.log(`Total current locked: ${summary.totalLocked.toLocaleString()}`)
-    console.log(`Sample accounts:`)
+    // console.log(`\n=== LOCK SUMMARY (SolanaFM) ===`)
+    // console.log(`Parsed ${lockAccounts.length} lock accounts`)
+    // console.log(`Total current locked: ${summary.totalLocked.toLocaleString()}`)
+    // console.log(`Sample accounts:`)
     lockAccounts.slice(0, 3).forEach((acc, i) => {
-      console.log(`  ${i + 1}. ${acc.name}: Total=${acc.totalLocked.toLocaleString()}, Claimed=${acc.withdrawn.toLocaleString()}, Current=${acc.amount.toLocaleString()}`)
+      //console.log(`  ${i + 1}. ${acc.name}: Total=${acc.totalLocked.toLocaleString()}, Claimed=${acc.withdrawn.toLocaleString()}, Current=${acc.amount.toLocaleString()}`)
     })
 
     return summary

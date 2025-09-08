@@ -7,5 +7,5 @@ export default function StakingLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <WalletProvider>{children}</WalletProvider>;
+  return <div className="walletprovider-parent"><WalletProvider>{children}</WalletProvider></div>;
 }

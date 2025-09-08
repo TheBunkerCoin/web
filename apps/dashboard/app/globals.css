@@ -148,3 +148,9 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Jupiter Wallet Kit Modal Overrides */
+.walletprovider-parent > dialog {
+  width: 100vw !important;
+  max-width: 100vw !important;
+}

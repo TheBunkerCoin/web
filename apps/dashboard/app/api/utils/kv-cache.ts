@@ -14,7 +14,7 @@ export async function withKvCache<T>(
   maxAgeMs: number,
   fetcher: () => Promise<T>,
   isValid?: (data: T) => boolean,
-  maxAttempts: number = 3,
+  maxAttempts: number = 1,
   retryDelayMs: number = 10_000,
 ): Promise<Response> {
   const { env, ctx } = getCloudflareContext();
@@ -40,7 +40,11 @@ export async function withKvCache<T>(
         (async () => {
           try {
             const fresh = await fetcher();
-            await kv.put(key, JSON.stringify({ cachedAt: Date.now(), data: fresh }));
+            if (!isValid || isValid(fresh)) {
+              await kv.put(key, JSON.stringify({ cachedAt: Date.now(), data: fresh }));
+            } else {
+              console.warn("[KV-CACHE] Skipping cache update - fresh data failed validation");
+            }
           } catch (err) {
             console.error("[KV-CACHE] background refresh failed", err);
           }
@@ -56,14 +60,33 @@ export async function withKvCache<T>(
   }
 
   let fresh: T | null = null;
+  let lastValidData: T | null = null;
+  
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    fresh = await fetcher();
-    if (!isValid || isValid(fresh)) {
-      await kv.put(key, JSON.stringify({ cachedAt: Date.now(), data: fresh }));
-      return new Response(JSON.stringify(fresh), { headers });
+    try {
+      fresh = await fetcher();
+      
+      if (!isValid || isValid(fresh)) {
+        await kv.put(key, JSON.stringify({ cachedAt: Date.now(), data: fresh }));
+        return new Response(JSON.stringify(fresh), { headers });
+      } else {
+        console.warn(`[KV-CACHE] Attempt ${attempt + 1}/${maxAttempts} returned invalid data`);
+      }
+    } catch (err) {
+      console.error(`[KV-CACHE] Attempt ${attempt + 1}/${maxAttempts} failed:`, err);
     }
-    await new Promise((res) => setTimeout(res, retryDelayMs));
+    
+    if (attempt < maxAttempts - 1) {
+      await new Promise((res) => setTimeout(res, retryDelayMs));
+    }
   }
 
-  return new Response("Data not available", { status: 503, headers });
+  console.error(`[KV-CACHE] All ${maxAttempts} attempts failed for key: ${key}`);
+  return new Response("Data temporarily unavailable", { 
+    status: 503, 
+    headers: {
+      ...headers,
+      "Retry-After": "60"
+    }
+  });
 } 

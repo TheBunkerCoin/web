@@ -12,6 +12,7 @@ import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   createAssociatedTokenAccountIdempotentInstruction
 } from '@solana/spl-token'
+import { Buffer } from 'buffer'
 import BN from 'bn.js'
 
 export const JUP_LOCK_PROGRAM_ID = new PublicKey('LocpQgucEQHbqNABEYvBvwoxCPsSbG91A1QaQhQQqjn')
@@ -31,6 +32,11 @@ export interface CreateStakeParams {
   amountBunker: number
   duration: DurationCode
   title: string
+}
+
+export interface CreateStakeTxResult {
+  transaction: Transaction
+  ephemeralKeypair: Keypair
 }
 
 const SECONDS = {
@@ -204,7 +210,7 @@ function createVestingEscrowMetadataInstruction(params: {
   })
 }
 
-export async function createStakeTx(params: CreateStakeParams): Promise<Transaction> {
+export async function createStakeTx(params: CreateStakeParams): Promise<CreateStakeTxResult> {
   const { connection, wallet, amountBunker, duration, title } = params
   const recipient = wallet
 
@@ -328,7 +334,10 @@ export async function createStakeTx(params: CreateStakeParams): Promise<Transact
   const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
   transaction.recentBlockhash = blockhash
   
-  transaction.partialSign(ephemeralKeypair)
+
   
-  return transaction
+  return {
+    transaction,
+    ephemeralKeypair
+  }
 }

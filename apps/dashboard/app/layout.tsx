@@ -11,6 +11,29 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "BunkerCoin App",
   description: "WebApp and Hub for BunkerCoin",
+  openGraph: {
+    title: "BunkerCoin App",
+    description: "WebApp and Hub for BunkerCoin",
+    siteName: "BunkerCoin",
+    locale: "en_US",
+    type: "website",
+    images: [
+      {
+        url: "/img/bunkercoin-icon.png",
+        width: 512,
+        height: 512,
+        alt: "BunkerCoin Logo",
+      },
+    ],
+  },
+  icons: {
+    icon: [
+      { url: "/img/bunkercoin-icon.png", sizes: "any" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    apple: "/img/bunkercoin-icon.png",
+    shortcut: "/img/bunkercoin-icon.png",
+  },
 };
 
 export default function RootLayout({

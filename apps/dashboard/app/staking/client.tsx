@@ -5,7 +5,6 @@ import dynamic from 'next/dynamic';
 import { UnifiedWalletButton } from '@jup-ag/wallet-adapter';
 import confetti from 'canvas-confetti';
 import toast, { Toaster } from 'react-hot-toast';
-import './wallet-button.css';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -363,14 +362,15 @@ export default function StakingClient() {
                       {(() => {
                         const yearlyRewards = THIS_MONTHS_REWARDS * 12;
                         
-                        // APY = (yearly rewards / (total staked / average multiplier)) * 100
-                        const avgMultiplier = protocolTotalStakingWeight / protocolTotalStaked;
+                        const hypotheticalStake = 100000;
+                        const weightedStake = hypotheticalStake * 4;
                         
-                        const effectiveStaked = protocolTotalStaked / avgMultiplier;
+                        const currentTotalWeight = protocolTotalStakingWeight || weightedStake;
                         
-                        const apy = effectiveStaked > 0 
-                          ? (yearlyRewards / effectiveStaked) * 100 
-                          : 0;
+                        const shareOfRewards = weightedStake / currentTotalWeight;
+                        const yourYearlyRewards = yearlyRewards * shareOfRewards;
+                        
+                        const apy = (yourYearlyRewards / hypotheticalStake) * 100;
                         
                         return `${apy.toFixed(1)}%`;
                       })()}
@@ -502,7 +502,12 @@ export default function StakingClient() {
                 </div>
                 <div className="pt-6 mt-auto border-t border-neutral-800">
                   <Button 
-                    onClick={() => setIsStakeModalOpen(true)}
+                    onClick={async () => {
+                      setIsStakeModalOpen(true);
+                      if (connected && publicKey) {
+                        await refreshWalletBalance();
+                      }
+                    }}
                     disabled={!connected}
                     className="w-full text-black font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{ backgroundColor: connected ? '#00FFB2' : '#404040' }}
@@ -741,7 +746,7 @@ export default function StakingClient() {
               }
             }
           }}>
-            <DialogContent className="max-w-[95vw] sm:max-w-[500px] max-h-[95vh] bg-neutral-900 border-neutral-800 overflow-y-auto">
+            <DialogContent className="max-w-[95vw] sm:max-w-[500px] max-h-[95vh] bg-neutral-900 border-neutral-800 overflow-y-auto z-[100]">
               <DialogHeader className="space-y-2 sm:space-y-3">
                 <DialogTitle className="text-xl sm:text-2xl font-bold">Stake BunkerCoin</DialogTitle>
                 <DialogDescription className="text-sm sm:text-base text-neutral-400">
@@ -837,6 +842,8 @@ export default function StakingClient() {
                                   
                                   const apy = (yourYearlyRewards / hypotheticalStake) * 100;
                                   
+
+                                  
                                   return apy > 1000 ? '>1000%' : `~${Math.round(apy)}%`;
                                 })()}
                               </span>
@@ -929,6 +936,7 @@ export default function StakingClient() {
                     const amount = parseFloat(stakeAmount || '0');
                     
                     setIsStaking(true);
+                    let toastId: string | undefined;
                     try {
                       const connection = getConnection();
                       if (!signTransaction) {
@@ -940,7 +948,7 @@ export default function StakingClient() {
                       const duration: DurationCode = selectedDuration === '1' ? '1M' : selectedDuration === '3' ? '3M' : selectedDuration === '6' ? '6M' : '12M';
                       const title = `BUNKER STAKING ${duration}`;
 
-                      const transaction = await createStakeTx({
+                      const { transaction, ephemeralKeypair } = await createStakeTx({
                         connection,
                         wallet: publicKey,
                         signTransaction,
@@ -949,9 +957,12 @@ export default function StakingClient() {
                         title,
                       });
 
+
                       const signed = await signTransaction(transaction);
                       
-                      const toastId = toast.loading('Sending transaction...');
+                      signed.partialSign(ephemeralKeypair);
+                      
+                      toastId = toast.loading('Sending transaction...');
                       
                       let sig: string;
                       try {
@@ -961,7 +972,7 @@ export default function StakingClient() {
                           maxRetries: 3
                         });
                         
-                        toast.loading('Confirming transaction...', { id: toastId });
+                        toast.loading('Confirming transaction...', { id: toastId, duration: 30000 });
                       } catch (sendError: any) {
                         const errorStr = sendError?.message || sendError?.toString() || '';
                         const sigMatch = errorStr.match(/[1-9A-HJ-NP-Za-km-z]{87,88}/);
@@ -969,7 +980,7 @@ export default function StakingClient() {
                         if (sigMatch) {
                           sig = sigMatch[0];
                           console.log('Transaction sent with signature from error:', sig);
-                          toast.loading('Confirming transaction...', { id: toastId });
+                          toast.loading('Confirming transaction...', { id: toastId, duration: 30000 });
                         } else {
                           throw sendError;
                         }
@@ -994,7 +1005,7 @@ export default function StakingClient() {
 
                       toast.success(
                         `Successfully staked ${amount.toLocaleString()} BUNKER for ${selectedOption?.label}!`,
-                        { id: toastId }
+                        { id: toastId, duration: 5000 }
                       );
                       
                       console.log(`View transaction: https://solscan.io/tx/${sig}`);
@@ -1074,7 +1085,11 @@ export default function StakingClient() {
                         errorMessage = 'Could not connect to Solana network.';
                       }
                       
-                      toast.error(`${errorTitle}: ${errorMessage}`);
+                      if (toastId) {
+                        toast.error(`${errorTitle}: ${errorMessage}`, { id: toastId, duration: 8000 });
+                      } else {
+                        toast.error(`${errorTitle}: ${errorMessage}`, { duration: 8000 });
+                      }
                     } finally {
                       setIsStaking(false);
                     }
