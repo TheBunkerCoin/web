@@ -26,7 +26,7 @@ const Header: React.FC = () => {
         <header className="fixed top-0 w-full flex flex-col backdrop-blur-md bg-black/5 z-[100]">
             <div className="container mx-auto px-6 py-6 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <Link href="/">
+                    <Link href="/transparency">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                             src="/img/bunkercoin-icon.svg"
